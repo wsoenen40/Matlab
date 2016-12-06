@@ -66,10 +66,12 @@ for i=1:length(Ivcsel)
         case 6
            File=strcat('../SilvaUltraShortCavity/M6082differentMesaDiameter/dB_angle/M6082_10_13_2_2_20C_',num2str(Ivcsel(i)),'mA_-17.5dBm.S2P');
         case 7
-            File=strcat('../SilvaUltraShortCavity/M6079_SG100/Vb_0_2V_0mA.s1p');
+            File=strcat('../SilvaUltraShortCavity/M6079_SG100/Vb_0V_0mA.s1p');
     end
     Ivcsel(i)
-    Ports=FindPortOrder(File);
+    if vcsel ~= 7
+        Ports=FindPortOrder(File);
+    end
     measured_data=read(rfdata.data, File);
     freq = measured_data.Freq;
     aperture=1e6;
@@ -98,15 +100,28 @@ for i=1:length(Ivcsel)
         semilogx(freq,db(total_S22))
         title('S22')
     end  
-        S_parameters=SwitchSpar(AnalyzedData.S_parameters, Ports);
+        if vcsel ~= 7
+            S_parameters=SwitchSpar(AnalyzedData.S_parameters, Ports);
+        else
+            S_parameters=AnalyzedData.S_parameters;
+            total_S=AnalyzedData.S_parameters;
+            total_S11(:,1)=total_S(1,1,:);
+            smithchart(total_S11)
+            figure
+            xdata_Z=s2z(total_S11(:,1));
+            xdata_Z11(:,1)=xdata_Z(1,1,:);
+            plot(freq,real(xdata_Z11),freq,imag(xdata_Z11));
+
+        end
         %[vcsel_ea(:,i), residual_S11]=GenerateEA_RC(S_parameters, freq, Zo);
         %Req=50.*vcsel_ea(1,:)./(50+vcsel_ea(1,:));
         %fp=1./(6.28*Req.*vcsel_ea(2,:));
-        [vcsel_ea(:,i), residual_S11]=GenerateEA_S_Silvia(S_parameters, freq, Zo);
+        %[vcsel_ea(:,i), residual_S11]=GenerateEA_S_Silvia(S_parameters, freq, Zo);
+        [vcsel_ea(:,i), residual_S11]=GenerateEA_BelowThreshold(S_parameters, freq, Zo);
 
         %[ fp(i) ] = fitEAtoTf(vcsel_ea(:,i),freq ,Zo,1);
         %[ fr(i), gamma(i), gain(i)] = FitS21toThreePoleTf(S_parameters,freq ,Zo,fp(i),0);
-        [ fr2(i), gamma2(i), gain2(i), fp2(i)] = FitS21toMultiPoleTf(S_parameters,freq ,Zo,vcsel_ea(:,i),0);
+        %[ fr2(i), gamma2(i), gain2(i), fp2(i)] = FitS21toMultiPoleTf(S_parameters,freq ,Zo,vcsel_ea(:,i),0);
         
 end
 

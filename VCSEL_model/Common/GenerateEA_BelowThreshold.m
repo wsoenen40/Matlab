@@ -13,11 +13,12 @@ function [x, resnorm] = GenerateEA_S_Silvia( xdata_S, freq, Zo)
 ydata(1:length(freq),1)=0.00; %target error of optimizer
 xdata_Z=s2z(xdata_S);
 xdata_Z11(:,1)=xdata_Z(1,1,:);
+xdata_S11(:,1)=xdata_S(1,1,:);
 
-x0=[1 ; 60e-15 ; 0.1 ; 220e-15 ; 56];
-lb=[0.1 ; 1e-15; 0.1; 1e-15 ; 10];
-ub=[1000 ; 1000e-15 ; 100 ; 1000e-15 ; 100];
-xtyp=[1 ; 40e-15 ; 5 ; 220e-15 ; 56];
+x0=[1e6 ; 1000e-15 ; 0.1 ; 220e-15 ];
+lb=[0.1 ; 1e-15; 1; 1e-15 ];
+ub=[1e6 ; 100e-12 ; 100 ; 10e-12 ];
+xtyp=[1 ; 40e-15 ; 5 ; 220e-15 ];
 options=optimset('TolFun',1e-6, 'TolX', 1e-15,'MaxIter',1000,'MaxFunEvals',1000,'FinDiffType','central','TypicalX',xtyp);
 %options=optimset('TolFun',1e-6, 'TolX', 1e-15,'MaxIter',1000,'MaxFunEvals',1000,'FinDiffType','central');
 
@@ -39,7 +40,7 @@ options=optimset('TolFun',1e-6, 'TolX', 1e-15,'MaxIter',1000,'MaxFunEvals',1000,
      ser=rfckt.series;
      ser.Ckts={rfckt.shuntrlc('R',x(1)), rfckt.shuntrlc('C',x(2))};
      %ea_vcsel.Ckts={rfckt.shuntrlc('C',x(1)),rfckt.seriesrlc('R',x(2)),rfckt.shuntrlc('C',x(3)), rfckt.shuntrlc('R', x(4))}; %Rs is shunt resistor to enable Z-matrix formalisme
-     ea_vcsel.Ckts={ser,rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4)), rfckt.shuntrlc('R', x(5))};
+     ea_vcsel.Ckts={rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4))};
      analyze(ea_vcsel,freq);
      ea_S=extract(ea_vcsel,'S_parameters',Zo);
      ea_S11(:,1)=ea_S(1,1,:);
@@ -57,7 +58,7 @@ options=optimset('TolFun',1e-6, 'TolX', 1e-15,'MaxIter',1000,'MaxFunEvals',1000,
  end
  
  if 1
-     ea_vcsel.Ckts={ser,rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4)), rfckt.shuntrlc('R', x(5)),rfckt.seriesrlc('R',10e6)};
+     ea_vcsel.Ckts={rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4)),rfckt.seriesrlc('R',10e6)};
      %ea_vcsel.Ckts={rfckt.shuntrlc('C',x(1)),rfckt.seriesrlc('R',x(2)),rfckt.shuntrlc('C',x(3)), rfckt.shuntrlc('R', x(4)),rfckt.seriesrlc('R',10e6)}; %last impedance is close to infinity to emulate 1-port 
      analyze(ea_vcsel,freq);
      ea_S=extract(ea_vcsel,'S_parameters',Zo);
@@ -70,20 +71,21 @@ options=optimset('TolFun',1e-6, 'TolX', 1e-15,'MaxIter',1000,'MaxFunEvals',1000,
  end
  
 %% Fitting function
-    function F=myfun(x,xdata_Z11)
+    function F=myfun(x,xdata_S11)
        %Construct electrical acces network VCSEL
             %x(1)=0.15;
             %x(2)=38e-15;
             ser=rfckt.series;
             ser.Ckts={rfckt.shuntrlc('R',x(1)), rfckt.shuntrlc('C',x(2))};
             ea_vcsel=rfckt.cascade;
-            ea_vcsel.Ckts={ser,rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4)), rfckt.shuntrlc('R', x(5))}; %Rs is shunt resistor to enable Z-matrix formalisme
+            ea_vcsel.Ckts={rfckt.seriesrlc('R',x(3)),rfckt.shuntrlc('C',x(4))}; %Rs is shunt resistor to enable Z-matrix formalisme
             analyze(ea_vcsel,freq);
             ea_S=extract(ea_vcsel,'S_parameters',Zo);
             ea_Z=s2z(ea_S);
             ea_Z11(:,1)=ea_Z(1,1,:);
+            ea_S11(:,1)=ea_S(1,1,:);
             %F(:,1)=abs(ea_Z11-xdata_Z11)+abs(real(ea_Z11(1))-real(xdata_Z11(1)));%compare phase and magnitude for curve fitting+DC impedance
-            F(:,1)=abs(ea_Z11-xdata_Z11);%compare phase and magnitude for curve fitting
+            F(:,1)=abs(ea_S11-xdata_S11);%compare phase and magnitude for curve fitting
 
     end
 

@@ -1,0 +1,1 @@
+M6079_x_7_x_3 corresponds to M6079 B1 VCSEL with a bandwidth of 22GHz and a max power of 2.3mW with a resistance of 50-60ohm
